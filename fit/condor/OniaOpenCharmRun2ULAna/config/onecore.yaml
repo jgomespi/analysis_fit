@@ -1,2 +1,0 @@
-executor: 'iterative_executor'
-chunksize: 10000

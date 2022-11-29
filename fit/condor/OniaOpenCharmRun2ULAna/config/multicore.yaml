@@ -1,3 +1,0 @@
-executor: 'futures_executor'
-n_cores: 8
-chunksize: 10000
