@@ -1,1 +1,2 @@
-# 3D Fit: association production of J/$\psi$ and D$^*$
+# 3D Fit: association production of $J/\psi$ and $D^*$
+
