@@ -61,9 +61,12 @@ def fit3DJpsiDstar(opt):
     gauss = ROOT.RooGaussian("gauss", "", jpsi_mass, mean_jpsi, sigma_gauss)
     crystal_ball = ROOT.RooCBShape("crystal_ball", "", jpsi_mass, mean_jpsi, sigma_cb, alpha, n)
 
-    # Jpsi mass definition 
-    jpsi_mass_signal = ROOT.RooAddPdf("jpsi_mass_signal", "", ROOT.RooArgList(gauss, crystal_ball),
-                                                            ROOT.RooArgList(frac_gauss_jpsi), ROOT.kTRUE)
+    if config.jpsi_mass_pdf['signal'] == 'CBG':
+        jpsi_mass_signal = ROOT.RooAddPdf("jpsi_mass_signal", "", ROOT.RooArgList(gauss, crystal_ball), 
+        	                                                      ROOT.RooArgList(frac_gauss_jpsi), ROOT.kTRUE)
+    elif config.jpsi_mass_pdf['signal'] == 'CB':
+    	jpsi_mass_signal = ROOT.RooCBShape("jpsi_mass_signal", "", jpsi_mass, mean_jpsi, sigma_cb, alpha, n)
+
     # jpsi mass frac
     #frac_gauss_jpsi = ROOT.RooRealVar("frac_jpsi_mass","", 3.13573e-01, 0.0001, 1.0)
 
@@ -76,8 +79,12 @@ def fit3DJpsiDstar(opt):
     frac_exp_mass = ROOT.RooRealVar("frac_exp_mass", "", *opt[0]['fit_parameters']['frac_exp_mass'])
 
     # Background definition
-    jpsi_mass_background = ROOT.RooExponential("back_exp", "", jpsi_mass, exp_coef)
-
+    if config.jpsi_mass_pdf['background'] == 'exp':    	
+    	jpsi_mass_background = ROOT.RooExponential("back_exp", "", jpsi_mass, exp_coef)
+    if config.jpsi_mass_pdf['background'] == 'linear':  
+    	p0 = ROOT.RooRealVar("p0","", *opt[0]['fit_parameters']['linear_coef0'])
+    	p1 = ROOT.RooRealVar('p1',"", *opt[0]['fit_parameters']['linear_coef1'])
+    	jpsi_mass_background = ROOT.RooPolynomial("back_linear", "", jpsi_mass, ROOT.RooArgList(p0,p1))
     ################## PDFs for prompt signal: Resolution function + Gaussian
 
     # Prompt Resolution 
@@ -91,30 +98,48 @@ def fit3DJpsiDstar(opt):
     sigma_pv = ROOT.RooRealVar("sigma_pv", "", *opt[0]['fit_parameters']['sigma_pv'])
     frac_pv = ROOT.RooRealVar("frac_np1", "", *opt[0]['fit_parameters']['frac_np1'])
     gauss_pv = ROOT.RooGaussian("gauss_pv", "", jpsi_dl, mean_pv, sigma_pv)
-    
-    # Jpsi model definition 
-    jpsi_prompt = ROOT.RooAddPdf("jpsi_prompt", "", ROOT.RooArgList(resolution_prompt, gauss_pv),
-                                                    ROOT.RooArgList(frac_prompt), ROOT.kTRUE)
+    exp_coef_pv = ROOT.RooRealVar("exp_coef_pv", "", *opt[0]['fit_parameters']['exp_coef_pv'])
+    prompt_exp = ROOT.RooExponential("prompt_exp", "", jpsi_dl, exp_coef_pv)
+
+    # Jpsi prompt model definition 
+    if config.jpsi_pdf['prompt'] == 'resolG':    	
+        jpsi_prompt = ROOT.RooAddPdf("jpsi_prompt", "", ROOT.RooArgList(resolution_prompt, gauss_pv),
+        	                                            ROOT.RooArgList(frac_prompt), ROOT.kTRUE)
+    elif config.jpsi_pdf['prompt'] == 'expG':  
+    	jpsi_prompt = ROOT.RooAddPdf("jpsi_prompt", "", ROOT.RooArgList(prompt_exp, gauss_pv),
+        	                                            ROOT.RooArgList(frac_pv), ROOT.kTRUE)
+        	
     ## Non-prompt: Exponential function convoluted with the another resolution function 
 
     # Non Prompt Resolution 
     mean_non_prompt = ROOT.RooRealVar("mean_non_prompt", "", *opt[0]['fit_parameters']['mean_non_prompt'])
+    mean_non_prompt2 = ROOT.RooRealVar("mean_non_prompt2", "", *opt[0]['fit_parameters']['mean_non_prompt2'])
     sigma_non_prompt = ROOT.RooRealVar("sigma_non_prompt", "", *opt[0]['fit_parameters']['sigma_non_prompt'])
+    sigma_non_prompt2 = ROOT.RooRealVar("sigma_non_prompt2", "", *opt[0]['fit_parameters']['sigma_non_prompt2'])
     frac_non_prompt = ROOT.RooRealVar("frac_non_prompt", "", 0.5, 0, 1.0)
+    frac_gauss_dl = ROOT.RooRealVar("frac_gauss_dl", "", *opt[0]['fit_parameters']['frac_gauss_dl'])
     resolution_non_prompt = ROOT.RooGaussModel("resolution_non_prompt", "", jpsi_dl, mean_non_prompt, sigma_non_prompt, jpsi_dlErr)
 
     # Exponential decay
     tau = ROOT.RooRealVar("tau", "", *opt[0]['fit_parameters']['tau'])
 
+    gauss1_non_prompt = ROOT.RooGaussian("gauss_pv", "", jpsi_dl, mean_non_prompt, sigma_non_prompt)
+    gauss2_non_prompt = ROOT.RooGaussian("gauss_pv", "", jpsi_dl, mean_non_prompt2, sigma_non_prompt2)
+    
     # PDF for nompromt signal
     frac_exp_dl = ROOT.RooRealVar("frac_exp_dl", "", *opt[0]['fit_parameters']['frac_exp_dl'])
     #jpsi_non_prompt = ROOT.RooDecay("exp_decay", "", jpsi_dl, tau, resolution_non_prompt, ROOT.RooDecay.SingleSided)
-    jpsi_non_prompt = ROOT.RooDecay("exp_decay", "", jpsi_dl, tau, resolution_non_prompt, ROOT.RooDecay.SingleSided)
-
+    if config.jpsi_pdf['non_prompt'] == 'resol':    	    
+        jpsi_non_prompt = ROOT.RooDecay("exp_decay", "", jpsi_dl, tau, resolution_non_prompt, ROOT.RooDecay.SingleSided)
+    elif config.jpsi_pdf['non_prompt'] == 'doubleG':    	    
+        jpsi_non_prompt = ROOT.RooAddPdf("exp_decay", "", ROOT.RooArgList(gauss1_non_prompt, gauss2_non_prompt),
+        	                                              ROOT.RooArgList(frac_gauss_dl), ROOT.kTRUE)
+        
     ## Dstar Signal: Jhonson's PDF
 
     # Dstar mean deltamr
     dstar_mean = ROOT.RooRealVar("dstar_mean", "Dstar Johnson's mean", *opt[0]['fit_parameters']['dstar_mean'])
+    dstar_mean2 = ROOT.RooRealVar("dstar_mean2", "Dstar Johnson's mean", *opt[0]['fit_parameters']['dstar_mean2'])
     # Jhonson's lambda
     dstar_lambda = ROOT.RooRealVar("dstar_lambda", "Dstar Johnson's lambda", *opt[0]['fit_parameters']['dstar_lambda'])
     # Jhonson's gamma
@@ -123,12 +148,23 @@ def fit3DJpsiDstar(opt):
     dstar_delta = ROOT.RooRealVar("dstar_delta", "Dstar Johnson's delta", *opt[0]['fit_parameters']['dstar_delta'])
     # Signal fraction
     dstar_frac = ROOT.RooRealVar("dstar_frac", "Dstar Johnson's frac", *opt[0]['fit_parameters']['dstar_frac'])
+
+    dstar_sigma = ROOT.RooRealVar("dstar_sigma", "Gauss sigma", *opt[0]['fit_parameters']['dstar_sigma'])
+    dstar_sigma2 = ROOT.RooRealVar("dstar_sigma2", "Gauss sigma", *opt[0]['fit_parameters']['dstar_sigma2'])
+
+    gauss1_dstar = ROOT.RooGaussian("gauss1_dstar", "", dstar_mass, dstar_mean, dstar_sigma)
+    gauss2_dstar = ROOT.RooGaussian("gauss2_dstar", "", dstar_mass, dstar_mean2, dstar_sigma2)
+    
     # Jhonson PDF definition
-    dstar_signal = ROOT.RooJohnson("dstar_signal", "Dstar Jhonson", dstar_mass, dstar_mean, dstar_lambda, dstar_gamma, dstar_delta)
+    if config.dstar_pdf['signal'] == 'johnson':
+        dstar_signal = ROOT.RooJohnson("dstar_signal", "Dstar Jhonson", dstar_mass, dstar_mean, dstar_lambda, dstar_gamma, dstar_delta)
+    if config.dstar_pdf['signal'] == 'doubleG':
+        dstar_signal = ROOT.RooAddPdf("dstar_signal", "", ROOT.RooArgList(gauss1_dstar, gauss2_dstar),
+        	                                              ROOT.RooArgList(dstar_frac), ROOT.kTRUE)
+
 
     #  Phenomenological Threshold Function 
     if config.dstar_pdf['background'] == 'ptf':
-
         # Coefficients
         p0 = ROOT.RooRealVar("p0","", *opt[0]['fit_parameters']['p0'])
         p1 = ROOT.RooRealVar('p1',"", *opt[0]['fit_parameters']['p1'])
@@ -599,11 +635,11 @@ def yields_jpsidstar(yield_list=config.yield_files):
             mass_jpsi_val = mass_jpsi.getVal()
             mass_jpsi_error = mass_jpsi.getError()
 
-            # Sigma gauss
-            sigma_gauss_jpsi = params.find("sigma_gauss")
-            sigma_gauss_jpsi_val = sigma_gauss_jpsi.getVal()
-            sigma_gauss_jpsi_error = sigma_gauss_jpsi.getError()
-
+            if config.jpsi_mass_pdf['signal'] == 'CBG':
+                #Sigma gauss
+            	sigma_gauss_jpsi = params.find("sigma_gauss")
+            	sigma_gauss_jpsi_val = sigma_gauss_jpsi.getVal()
+            	sigma_gauss_jpsi_error = sigma_gauss_jpsi.getError()
             # Sigma CB
             sigma_cb_jpsi = params.find("sigma_cb")
             sigma_cb_jpsi_val = sigma_cb_jpsi.getVal()
@@ -645,8 +681,9 @@ def yields_jpsidstar(yield_list=config.yield_files):
                 lmass_jpsi = ['Mass - J/ψ [GeV/c²]', f'{mass_jpsi_val:.5f}' , f'{mass_jpsi_error:.5f}']
                 writer.writerow(lmass_jpsi)
 
-                lgauss_jpsi_sigma = ['Gaussian Sigma - J/ψ [GeV/c²]', f'{sigma_gauss_jpsi_val:.5f}' , f'{sigma_gauss_jpsi_error:.5f}']
-                writer.writerow(lgauss_jpsi_sigma)
+                if config.jpsi_mass_pdf['signal'] == 'CBG':
+                	lgauss_jpsi_sigma = ['Gaussian Sigma - J/ψ [GeV/c²]', f'{sigma_gauss_jpsi_val:.5f}' , f'{sigma_gauss_jpsi_error:.5f}']
+                	writer.writerow(lgauss_jpsi_sigma)
 
                 lcb_sigma = ['Crystal Ball Sigma - J/ψ [GeV/c²]', f'{sigma_cb_jpsi_val:.5f}' , f'{sigma_cb_jpsi_error:.5f}',]
                 writer.writerow(lcb_sigma)

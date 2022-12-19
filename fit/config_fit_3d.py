@@ -1,14 +1,19 @@
 
-set = 'Charmonium2017_sigeff_HLT_Dimuon25'
+set = 'Charmonium2017_HLT_Dimuon25'
 
 cases={set : [{'fit_parameters' : {# Jpsi Mass
+                                                     #'mean_jpsi' : [3.09423e+00, 3.08, 3.10], 
                                                      'mean_jpsi' : [3.09423e+00, 3.08, 3.10], 
                                                      'sigma_gauss' : [3.90710e-02, 0.009, 0.070], 
+                                                     #'sigma_cb' : [2.10832e-02, 0.009, 0.070],
                                                      'sigma_cb' : [2.10832e-02, 0.009, 0.070],
                                                      'frac_gauss_jpsi' : [3.13573e-01, 0.001, 1.0],  
+                                                     #'frac_gauss_jpsi' : [0.0],  
                                                      'frac_cb' : [0.6, 0.0001, 1.0], 
-                                                     'alpha' : 1.4,
+                                                     'alpha' : 1.4, #1.4
                                                      'n' : 8.8, #(8.8)
+                                                     'linear_coef0' : [1., -100., 100.],
+                                                     'linear_coef1' : [-.01, -1., 1.],
                                                      'exp_coef' : [-1.82143e+00 , -4, 3], 
                                                      'frac_exp_mass' : [0.4, 0.0, 1.0],
                                                      # Jpsi Decay Lenght
@@ -18,16 +23,23 @@ cases={set : [{'fit_parameters' : {# Jpsi Mass
                                                      'frac_prompt' : [0.5, 0, 1.0],
                                                      'mean_pv' : [0, -0.3, 0.3],
                                                      'sigma_pv' : [0.01, 0, 0.3],
-                                                     'frac_np1' : [0.3, 0.0, 1.0],
+                                                     'exp_coef_pv' : [-.1 , -10., 10.], 
+                                                     'frac_np1' : [0.1, 0.0, 0.5],
                                                      'mean_non_prompt' : [0, -0.1, 0.1],
                                                      'sigma_non_prompt' : [0.01, 0, 0.1],  
+                                                     'mean_non_prompt2' : [0.1, -0.1, 0.1],
+                                                     'sigma_non_prompt2' : [0.05, 0, 0.1],  
                                                      'tau' : [0.19, 0.01, 3],
                                                      'frac_exp_dl' : [7.17152e-01, 0.0, 1.0],
+                                                     'frac_gauss_dl' : [0.5, 0.0, 1.0],
                                                      # Dstar delta mass 
                                                      'dstar_mean' : [1.45431e-01, 0.142, 0.158],
+                                                     'dstar_mean2' : [0.144, 0.142, 0.158],
                                                      'dstar_lambda' : [6.69130e-04, 0.00001, 0.01], 
                                                      'dstar_gamma' : [1.64257e-02, 0.001, 0.1], 
                                                      'dstar_delta' : [1.47542e+00, -3, 4], 
+                                                     'dstar_sigma' : [3.90710e-02, 0.009, 0.070], 
+                                                     'dstar_sigma2' : [0.01, 0.009, 0.070], 
                                                      'dstar_frac' : [1.00157e-01, 0, 1], 
                                                      # PTF coeficients
                                                      'p0' : [2.75881e-03, 0.0001, 0.1], 
@@ -59,8 +71,14 @@ cases={set : [{'fit_parameters' : {# Jpsi Mass
 
 # PDFs
 
-dstar_pdf = {'signal': 'jonshon',
-             'background': 'ntf'} # background: ptf, ntf
+dstar_pdf = {'signal': 'johnson', # signal: johnson (default), doubleG (?)
+             'background': 'ntf'} # background: ntf (default), ptf
+
+jpsi_mass_pdf = {'signal': 'CBG', # signal: CBG (default), CB
+            'background': 'exp'} #background: exp (default), linear
+
+jpsi_pdf = {'prompt' : 'resolG',  # prompt: resolG (default), expG (?)
+            'non_prompt' : 'resol'} # non_prompt: resol (default), doubleG (?)
 
 # Luminosity
 lumi = "41.48 fb^{-1}"
